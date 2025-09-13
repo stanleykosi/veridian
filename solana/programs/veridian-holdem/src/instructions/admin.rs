@@ -62,3 +62,30 @@ pub struct SetRakeConfig<'info> {
     /// The signer of the transaction, who must be the current administrator.
     pub admin: Signer<'info>,
 }
+
+/// The handler function for the `initialize_config` instruction.
+pub fn initialize_config(
+    ctx: Context<InitializeConfig>,
+    treasury_wallet: Pubkey,
+    rake_percentage: u8,
+    rake_cap: u64,
+) -> Result<()> {
+    let config = &mut ctx.accounts.config;
+    config.admin = ctx.accounts.admin.key();
+    config.treasury_wallet = treasury_wallet;
+    config.rake_percentage = rake_percentage;
+    config.rake_cap = rake_cap;
+    Ok(())
+}
+
+/// The handler function for the `set_rake_config` instruction.
+pub fn set_rake_config(
+    ctx: Context<SetRakeConfig>,
+    rake_percentage: u8,
+    rake_cap: u64,
+) -> Result<()> {
+    let config = &mut ctx.accounts.config;
+    config.rake_percentage = rake_percentage;
+    config.rake_cap = rake_cap;
+    Ok(())
+}

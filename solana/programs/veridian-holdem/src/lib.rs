@@ -47,12 +47,7 @@ pub mod veridian_holdem {
         rake_percentage: u8,
         rake_cap: u64,
     ) -> Result<()> {
-        let config = &mut ctx.accounts.config;
-        config.admin = ctx.accounts.admin.key();
-        config.treasury_wallet = treasury_wallet;
-        config.rake_percentage = rake_percentage;
-        config.rake_cap = rake_cap;
-        Ok(())
+        instructions::admin::initialize_config(ctx, treasury_wallet, rake_percentage, rake_cap)
     }
 
     /// Updates the rake configuration.
@@ -68,9 +63,38 @@ pub mod veridian_holdem {
         rake_percentage: u8,
         rake_cap: u64,
     ) -> Result<()> {
-        let config = &mut ctx.accounts.config;
-        config.rake_percentage = rake_percentage;
-        config.rake_cap = rake_cap;
-        Ok(())
+        instructions::admin::set_rake_config(ctx, rake_percentage, rake_cap)
+    }
+
+    /// Creates a new poker table with a specific configuration.
+    /// This initializes the `TableConfig`, `GameState`, and token `Escrow` PDAs.
+    /// The creator's buy-in is transferred into the escrow account.
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - The context containing accounts for table creation.
+    /// * `table_id` - A unique u64 identifier for the new table.
+    /// * `small_blind` - The small blind amount.
+    /// * `big_blind` - The big blind amount.
+    /// * `buy_in` - The amount of tokens required to join.
+    pub fn create_table(
+        ctx: Context<CreateTable>,
+        table_id: u64,
+        small_blind: u64,
+        big_blind: u64,
+        buy_in: u64,
+    ) -> Result<()> {
+        instructions::create_table::create_table(ctx, table_id, small_blind, big_blind, buy_in)
+    }
+
+    /// Allows a second player to join an existing, open poker table.
+    /// This instruction validates that the table has an open seat, then transfers the
+    /// joiner's buy-in into the escrow and marks the game as active.
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - The context containing accounts for joining the table.
+    pub fn join_table(ctx: Context<JoinTable>) -> Result<()> {
+        instructions::join_table::join_table(ctx)
     }
 }
