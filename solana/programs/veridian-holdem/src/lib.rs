@@ -128,4 +128,9 @@ pub mod veridian_holdem {
     pub fn leave_table(ctx: Context<LeaveTable>) -> Result<()> {
         instructions::leave_table::leave_table(ctx)
     }
+
+    /// A permissionless instruction to fold on behalf of a player whose turn timer has expired.
+    pub fn crank_fold(ctx: Context<CrankFold>) -> Result<()> {
+        instructions::crank_fold::crank_fold(ctx)
+    }
 }

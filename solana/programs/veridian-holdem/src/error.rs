@@ -39,6 +39,9 @@ pub enum ErrorCode {
     #[msg("The player has insufficient funds to perform this action.")]
     InsufficientFunds,
 
+    #[msg("The turn timer has not yet expired.")]
+    TimerNotExpired,
+
     #[msg("Cluster not set")]
     ClusterNotSet,
 }

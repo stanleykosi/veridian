@@ -18,6 +18,8 @@ use anchor_lang::prelude::*;
 
 /// The maximum number of players at a table. For Heads-Up, this is always 2.
 pub const MAX_PLAYERS: usize = 2;
+/// The duration of a player's turn in seconds before they can be folded by the crank.
+pub const TURN_TIME_SECONDS: i64 = 30;
 
 /// Defines the current phase of a poker hand, dictating which actions are valid.
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace, Copy)]
