@@ -25,6 +25,9 @@ pub mod state;
 use instructions::*;
 pub use state::*;
 
+// Re-export commonly used types and constants
+// Note: ID_CONST is already defined by declare_id! macro
+
 // The unique on-chain address of the Veridian Hold'em program.
 declare_id!("Cd23WfyTo2XjmswN1n8WvcWARUJiTjXtK4wnLmwxh7in");
 
@@ -96,5 +99,33 @@ pub mod veridian_holdem {
     /// * `ctx` - The context containing accounts for joining the table.
     pub fn join_table(ctx: Context<JoinTable>) -> Result<()> {
         instructions::join_table::join_table(ctx)
+    }
+
+    /// Initiates a new hand by triggering the confidential shuffle and deal computation.
+    pub fn deal_new_hand(ctx: Context<DealNewHand>, computation_offset: u64) -> Result<()> {
+        instructions::deal_new_hand::deal_new_hand(ctx, computation_offset)
+    }
+
+    /// Processes a player's action (Fold, Check, Call, Bet, Raise).
+    pub fn player_action(ctx: Context<PlayerAction>, action: Action) -> Result<()> {
+        instructions::player_action::player_action(ctx, action)
+    }
+
+    /// Requests the reveal of the next community cards (Flop, Turn, River).
+    pub fn request_community_cards(
+        ctx: Context<RequestCommunityCards>,
+        computation_offset: u64,
+    ) -> Result<()> {
+        instructions::request_cards::request_community_cards(ctx, computation_offset)
+    }
+
+    /// Requests the confidential showdown computation to determine the winner.
+    pub fn request_showdown(ctx: Context<RequestShowdown>, computation_offset: u64) -> Result<()> {
+        instructions::request_cards::request_showdown(ctx, computation_offset)
+    }
+
+    /// Allows a player to leave the table and withdraw their funds.
+    pub fn leave_table(ctx: Context<LeaveTable>) -> Result<()> {
+        instructions::leave_table::leave_table(ctx)
     }
 }

@@ -38,4 +38,7 @@ pub enum ErrorCode {
 
     #[msg("The player has insufficient funds to perform this action.")]
     InsufficientFunds,
+
+    #[msg("Cluster not set")]
+    ClusterNotSet,
 }

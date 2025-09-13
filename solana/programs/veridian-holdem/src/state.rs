@@ -124,3 +124,14 @@ pub struct HandState {
     /// verifiable on-chain link for auditing the integrity of the shuffle.
     pub shuffle_tx_sig: [u8; 64],
 }
+
+/// A simple signer account for PDA-based signing.
+/// This is used for program-derived addresses that need to sign transactions.
+#[account]
+#[derive(InitSpace)]
+pub struct SignerAccount {
+    /// A simple flag to indicate this is a signer account.
+    pub is_signer: bool,
+    /// The bump seed used to derive this PDA.
+    pub bump: u8,
+}
