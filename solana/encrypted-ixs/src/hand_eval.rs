@@ -17,7 +17,7 @@
  * - Special Cases: Properly handles edge cases like the A-2-3-4-5 "wheel" straight.
  *
  * @dependencies
- * - arcis_imports: Provides types and functions for writing Arcis confidential instructions.
+ * - None. This is a pure logic module.
  *
  * @notes
  * - A card is represented as a `u8` from 0 to 51.
@@ -164,4 +164,46 @@ pub fn evaluate_hand(hand: [u8; 5]) -> u64 {
     score |= (ordered_kickers[4] as u64) << 0;
 
     score
+}
+
+/// Finds the highest possible score from a 7-card hand by evaluating all 21
+/// possible 5-card combinations.
+///
+/// # Arguments
+/// * `seven_cards` - A fixed-size array of 7 `u8` values representing the cards.
+///
+/// # Returns
+/// The `u64` score of the best 5-card hand.
+pub fn find_best_hand_from_seven(seven_cards: [u8; 7]) -> u64 {
+    // All 21 combinations of 5-card hands from 7 cards, represented by indices.
+    const COMBINATIONS: [[usize; 5]; 21] = [
+        [0,1,2,3,4], [0,1,2,3,5], [0,1,2,3,6], [0,1,2,4,5], [0,1,2,4,6],
+        [0,1,2,5,6], [0,1,3,4,5], [0,1,3,4,6], [0,1,3,5,6], [0,1,4,5,6],
+        [0,2,3,4,5], [0,2,3,4,6], [0,2,3,5,6], [0,2,4,5,6], [0,3,4,5,6],
+        [1,2,3,4,5], [1,2,3,4,6], [1,2,3,5,6], [1,2,4,5,6], [1,3,4,5,6],
+        [2,3,4,5,6]
+    ];
+
+    let mut max_score = 0u64;
+
+    // Iterate through all combinations, evaluate each 5-card hand, and keep track of the max score.
+    // This loop is data-independent as it always runs 21 times.
+    for combo in COMBINATIONS {
+        let mut current_hand = [0u8; 5];
+        current_hand[0] = seven_cards[combo[0]];
+        current_hand[1] = seven_cards[combo[1]];
+        current_hand[2] = seven_cards[combo[2]];
+        current_hand[3] = seven_cards[combo[3]];
+        current_hand[4] = seven_cards[combo[4]];
+        
+        let score = evaluate_hand(current_hand);
+        
+        // Data-independent update of max_score using an arithmetic multiplexer.
+        // This is equivalent to `if score > max_score { max_score = score; }`
+        // but avoids data-dependent branching.
+        let is_greater = score > max_score;
+        max_score = (is_greater as u64 * score) + ((!is_greater) as u64 * max_score);
+    }
+
+    max_score
 }
