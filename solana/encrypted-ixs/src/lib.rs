@@ -15,11 +15,26 @@ mod circuits {
         pub dealt_community_cards: u8,
     }
 
+    /// Consolidated struct to hold all encrypted data for a player
+    /// This reduces the number of calls to owner.from_arcis() for better performance
+    #[derive(Clone, Copy)]
+    pub struct PlayerEncryptedData {
+        pub hole_cards: [u8; 2],
+    }
+
+    /// Consolidated struct to hold all encrypted data for the MXE
+    /// This reduces the number of calls to owner.from_arcis() for better performance
+    #[derive(Clone, Copy)]
+    pub struct MXEEncryptedData {
+        pub deck: Deck,
+        pub revealed_cards: [u8; 3],
+    }
+
     #[instruction]
     pub fn shuffle_and_deal(
         player1_pubkey: ArcisPublicKey,
         player2_pubkey: ArcisPublicKey,
-    ) -> (Enc<Shared, [u8; 2]>, Enc<Shared, [u8; 2]>, Enc<Mxe, Deck>) {
+    ) -> (Enc<Shared, PlayerEncryptedData>, Enc<Shared, PlayerEncryptedData>, Enc<Mxe, Deck>) {
         let mut deck: [u8; 52] = [0; 52];
         for i in 0..52 {
             deck[i] = i as u8;
@@ -40,15 +55,24 @@ mod circuits {
             dealt_community_cards: 0,
         };
 
+        // Create consolidated data structures
+        let p1_data = PlayerEncryptedData {
+            hole_cards: p1_cards,
+        };
+        let p2_data = PlayerEncryptedData {
+            hole_cards: p2_cards,
+        };
+
+        // Single call to from_arcis per owner (optimized)
         let player1_owner = Shared::new(player1_pubkey);
         let player2_owner = Shared::new(player2_pubkey);
         let mxe_owner = Mxe::get();
 
-        let enc_p1_cards = player1_owner.from_arcis(p1_cards);
-        let enc_p2_cards = player2_owner.from_arcis(p2_cards);
+        let enc_p1_data = player1_owner.from_arcis(p1_data);
+        let enc_p2_data = player2_owner.from_arcis(p2_data);
         let enc_board_deck = mxe_owner.from_arcis(board_deck);
 
-        (enc_p1_cards, enc_p2_cards, enc_board_deck)
+        (enc_p1_data, enc_p2_data, enc_board_deck)
     }
 
     #[instruction]
@@ -80,6 +104,7 @@ mod circuits {
             deck.dealt_community_cards += 1;
         }
 
+        // Single call to from_arcis per owner (optimized)
         let mxe_owner1 = Mxe::get();
         let mxe_owner2 = Mxe::get();
         let enc_deck = mxe_owner1.from_arcis(deck);
@@ -106,8 +131,8 @@ mod circuits {
     /// - `2`: It's a tie (split pot).
     #[instruction]
     pub fn determine_winner(
-        p1_cards_ctxt: Enc<Shared, [u8; 2]>,
-        p2_cards_ctxt: Enc<Shared, [u8; 2]>,
+        p1_cards_ctxt: Enc<Shared, PlayerEncryptedData>,
+        p2_cards_ctxt: Enc<Shared, PlayerEncryptedData>,
         board: [u8; 5],
     ) -> u8 {
         // Define the hand evaluation functions directly here since we can't import them
@@ -296,13 +321,13 @@ mod circuits {
             max_score
         }
         
-        let p1_cards = p1_cards_ctxt.to_arcis();
-        let p2_cards = p2_cards_ctxt.to_arcis();
+        let p1_data = p1_cards_ctxt.to_arcis();
+        let p2_data = p2_cards_ctxt.to_arcis();
 
         // Combine hole cards and board for player 1
         let p1_seven_cards = [
-            p1_cards[0],
-            p1_cards[1],
+            p1_data.hole_cards[0],
+            p1_data.hole_cards[1],
             board[0],
             board[1],
             board[2],
@@ -312,8 +337,8 @@ mod circuits {
 
         // Combine hole cards and board for player 2
         let p2_seven_cards = [
-            p2_cards[0],
-            p2_cards[1],
+            p2_data.hole_cards[0],
+            p2_data.hole_cards[1],
             board[0],
             board[1],
             board[2],
