@@ -25,7 +25,7 @@
  * - `suit = card % 4`
  * - The final score is composed as: `(HandRank << 20) | (Kicker1 << 16) | ... | (Kicker5 << 0)`.
  */
-use arcis_imports::*;
+// No imports needed for this module
 
 // --- Constants for Hand Ranks ---
 // These values determine the base score for each hand type.
