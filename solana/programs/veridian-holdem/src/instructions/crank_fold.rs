@@ -30,7 +30,7 @@ pub struct CrankFold<'info> {
     /// It must be mutable as the instruction will update its state.
     #[account(
         mut,
-        seeds = [b"game", &game_state.table_config.key().to_bytes()[..]],
+        seeds = [b"game", &game_state.table_id.to_le_bytes()[..]],
         bump
     )]
     pub game_state: Account<'info, GameState>,

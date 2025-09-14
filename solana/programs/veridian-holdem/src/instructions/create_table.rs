@@ -101,6 +101,7 @@ pub fn create_table(
 
     // 2. Initialize the GameState account with default values for a new, empty table.
     let game_state = &mut ctx.accounts.game_state;
+    game_state.table_id = table_id; // Set the table_id for consistent PDA derivation.
     game_state.table_config = table_config.key();
     game_state.players[0] = ctx.accounts.creator.key();
     game_state.players[1] = Pubkey::default(); // Represents an empty seat.

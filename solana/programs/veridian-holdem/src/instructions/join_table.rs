@@ -28,15 +28,13 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 #[derive(Accounts)]
 pub struct JoinTable<'info> {
     /// The `GameState` account for the table being joined.
-    /// Several constraints are applied to ensure the join is valid:
-    /// - `!game_state.is_active`: The game cannot already be in progress.
-    /// - `game_state.players[1] == Pubkey::default()`: There must be an empty seat.
     #[account(
         mut,
-        seeds = [b"game", &table_config.table_id.to_le_bytes()[..]],
+        seeds = [b"game", &game_state.table_id.to_le_bytes()[..]],
         bump,
         constraint = !game_state.is_active @ ErrorCode::GameAlreadyInProgress,
         constraint = game_state.players[1] == Pubkey::default() @ ErrorCode::TableFull,
+        constraint = game_state.table_id == table_config.table_id
     )]
     pub game_state: Account<'info, GameState>,
 
@@ -60,8 +58,6 @@ pub struct JoinTable<'info> {
     pub joiner: Signer<'info>,
 
     /// The joiner's personal token account.
-    /// Constraints ensure it's the correct token and that the joiner isn't the same
-    /// as the player already at the table.
     #[account(
         mut,
         constraint = joiner_token_account.mint == table_config.token_mint,

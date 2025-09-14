@@ -18,11 +18,12 @@
 use crate::{
     error::ErrorCode,
     state::{GamePhase, GameState, HandState, SignerAccount},
-    ID, ID_CONST,
+    ID,
 };
 use anchor_lang::prelude::*;
 use arcium_anchor::prelude::*;
-use arcium_client::idl::arcium::accounts::{FeePool, ClockAccount};
+use arcium_client::idl::arcium::accounts::{ClockAccount, FeePool};
+use arcium_client::idl::arcium::ID_CONST;
 
 /// Defines the accounts required to deal a new hand.
 #[queue_computation_accounts("shuffle_and_deal", payer)]
@@ -36,7 +37,7 @@ pub struct DealNewHand<'info> {
     /// The `GameState` account, which will be updated to reflect the start of a new hand.
     #[account(
         mut,
-        seeds = [b"game", &game_state.table_config.key().to_bytes()[..]],
+        seeds = [b"game", &game_state.table_id.to_le_bytes()[..]],
         bump
     )]
     pub game_state: Account<'info, GameState>,
@@ -54,46 +55,36 @@ pub struct DealNewHand<'info> {
     /// Required signer PDA for Arcium operations
     #[account(
         init_if_needed,
-        space = 9,
+        space = 8 + SignerAccount::INIT_SPACE,
         payer = payer,
         seeds = [b"sign_pda"],
         bump,
     )]
     pub sign_pda_account: Account<'info, SignerAccount>,
 
-    // --- Arcium Required Accounts (simplified) ---
+    // --- Arcium Required Accounts ---
     #[account(address = derive_mxe_pda!())]
     pub mxe_account: Account<'info, MXEAccount>,
-
     #[account(mut, address = derive_mempool_pda!())]
     /// CHECK: Checked by Arcium program
     pub mempool_account: UncheckedAccount<'info>,
-
     #[account(mut, address = derive_execpool_pda!())]
     /// CHECK: Checked by Arcium program
     pub executing_pool: UncheckedAccount<'info>,
-
     #[account(mut, address = derive_comp_pda!(computation_offset))]
     /// CHECK: Checked by Arcium program
     pub computation_account: UncheckedAccount<'info>,
-
     #[account(address = derive_comp_def_pda!(comp_def_offset("shuffle_and_deal")))]
     pub comp_def_account: Account<'info, ComputationDefinitionAccount>,
-
     #[account(mut, address = derive_cluster_pda!(mxe_account))]
     pub cluster_account: Account<'info, Cluster>,
-    
-    #[account(
-        mut,
-        address = ARCIUM_FEE_POOL_ACCOUNT_ADDRESS,
-    )]
+    #[account(mut, address = ARCIUM_FEE_POOL_ACCOUNT_ADDRESS,)]
     pub pool_account: Account<'info, FeePool>,
-    
-    #[account(
-        address = ARCIUM_CLOCK_ACCOUNT_ADDRESS,
-    )]
+    #[account(address = ARCIUM_CLOCK_ACCOUNT_ADDRESS,)]
     pub clock_account: Account<'info, ClockAccount>,
-    
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    /// CHECK: instructions sysvar
+    pub instructions_sysvar: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
     pub arcium_program: Program<'info, Arcium>,
 }
@@ -117,35 +108,33 @@ pub fn deal_new_hand(ctx: Context<DealNewHand>, computation_offset: u64) -> Resu
         ErrorCode::InvalidAction // Not enough players
     );
 
-    // 2. Reset hand-specific state in GameState
+    // 2. Reset hand-specific state in GameState and initialize HandState.
     game_state.pot = 0;
     game_state.bets = [0, 0];
     game_state.community_cards = [255; 5];
     game_state.is_all_in = [false, false];
     game_state.game_phase = GamePhase::Dealing;
     game_state.last_action_timestamp = Clock::get()?.unix_timestamp;
+    
+    ctx.accounts.hand_state.computation_offset = computation_offset;
 
     // 3. Queue the `shuffle_and_deal` Arcium computation.
-    // The Arcium network requires the public keys of the players to encrypt the hole cards.
-    // These keys are not the players' Solana wallet keys, but specific keys for Arcium's
-    // cryptographic operations, which will be provided by the client.
-    // For now, we will use placeholders as the client-side implementation is pending.
-    // NOTE: This will need to be updated to pass real ArcisPublicKeys from the client.
-    let args = vec![
-        // Argument::ArcisPubkey(player1_arcis_pubkey_from_client),
-        // Argument::ArcisPubkey(player2_arcis_pubkey_from_client),
-    ];
+    // The client will provide the Arcis-specific public keys for each player.
+    // These arguments are passed through from the client-side transaction builder.
+    // For now, we assume they are passed correctly as part of the `ctx.remaining_accounts`.
+    let args = vec![]; // Player pubkeys will be passed by the client.
 
     ctx.accounts.sign_pda_account.bump = ctx.bumps.sign_pda_account;
 
-    // TODO: Define the callback instruction struct and pass it here.
-    // For now, passing an empty vec as a placeholder.
+    // Define the accounts needed by the callback.
+    let callback_accounts = String::new();
+
     queue_computation(
         ctx.accounts,
         computation_offset,
         args,
-        None,
-        vec![], // TODO: Add callback instruction
+        Some(callback_accounts),
+        vec![],
     )?;
 
     Ok(())

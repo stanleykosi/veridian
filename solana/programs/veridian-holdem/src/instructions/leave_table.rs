@@ -31,14 +31,19 @@ pub struct LeaveTable<'info> {
     /// The `GameState` account, which will be updated to remove the player.
     #[account(
         mut,
-        seeds = [b"game", &table_config.table_id.to_le_bytes()[..]],
+        seeds = [b"game", &game_state.table_id.to_le_bytes()[..]],
         bump,
         // The table can be closed if this is the last player leaving.
-        close = player_token_account
+        // A more robust implementation would also close the TableConfig and Escrow accounts.
+        close = player
     )]
     pub game_state: Account<'info, GameState>,
 
-    /// The associated `TableConfig`, needed to find the `GameState` PDA.
+    /// The associated `TableConfig`, needed to verify the player is at the right table.
+    #[account(
+        seeds = [b"table_config", &game_state.table_id.to_le_bytes()[..]],
+        bump
+    )]
     pub table_config: Account<'info, TableConfig>,
 
     /// The game's escrow account, from which funds will be withdrawn.

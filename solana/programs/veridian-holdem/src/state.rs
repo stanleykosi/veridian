@@ -83,6 +83,8 @@ pub struct TableConfig {
 #[account]
 #[derive(InitSpace)]
 pub struct GameState {
+    /// A unique identifier for the table, used in this account's PDA seed.
+    pub table_id: u64,
     /// A public key linking to the table's static `TableConfig` account.
     pub table_config: Pubkey,
     /// The public keys of the two players at the table. A `Pubkey::default()`
@@ -116,15 +118,17 @@ pub struct GameState {
 #[account]
 #[derive(InitSpace)]
 pub struct HandState {
-    /// Encrypted hole cards for each player. Each blob contains the ciphertext, nonce,
-    /// and public key required for client-side decryption. The size is 128 bytes per player.
+    /// Encrypted hole cards for each player. Each blob contains a serialized `SharedEncryptedStruct<2>`
+    /// from Arcium, which includes the public key, nonce, and two ciphertexts. Size is padded to 128 bytes.
     pub encrypted_hole_cards: [[u8; 128]; MAX_PLAYERS],
-    /// The remaining 48 cards of the deck, encrypted for use only by the Arcium MXE.
-    /// The size is calculated to hold the nonce and 48 encrypted card values.
-    pub encrypted_deck: [u8; 1568],
-    /// The transaction signature of the `deal_new_hand` instruction. This provides a
-    /// verifiable on-chain link for auditing the integrity of the shuffle.
-    pub shuffle_tx_sig: [u8; 64],
+    /// The remaining 48 cards of the deck plus metadata, encrypted as a single blob for use by the Arcium MXE.
+    /// This stores a serialized `MXEEncryptedStruct<49>`, which is 16 bytes for the nonce
+    /// and 49 * 32 = 1568 bytes for the ciphertexts, totaling 1584 bytes.
+    pub encrypted_deck: [u8; 1584],
+    /// The computation offset used to queue the shuffle instruction. This provides a
+    /// verifiable on-chain link for auditing the integrity of the shuffle, as the original
+    /// transaction signature is not available inside an instruction.
+    pub computation_offset: u64,
 }
 
 /// A simple signer account for PDA-based signing.

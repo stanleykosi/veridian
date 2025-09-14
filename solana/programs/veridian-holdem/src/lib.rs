@@ -1,29 +1,20 @@
-/**
- * @description
- * This is the main library file for the Veridian Hold'em on-chain program.
- * It serves as the entry point for all instructions and defines the program's overall structure.
- *
- * @dependencies
- * - anchor_lang: The core Anchor framework library.
- * - arcium_anchor: Arcium's extensions for Anchor, enabling confidential compute.
- * - Internal modules: `state`, `error`, and `instructions`.
- *
- * @notes
- * - The `#[arcium_program]` macro is used instead of Anchor's `#[program]` to enable
- *   integration with the Arcium confidential compute network.
- * - The program `declare_id!` must match the program ID in `Anchor.toml` and the deployed program address.
- */
-
 use anchor_lang::prelude::*;
 use arcium_anchor::prelude::*;
 
+pub mod callbacks;
 pub mod error;
 pub mod instructions;
 pub mod state;
 
 // Re-export modules to make their contents easily accessible to other parts of the program.
+use callbacks::*;
 use instructions::*;
 pub use state::*;
+
+// Explicitly export the callback structs to fix privacy issues
+pub use callbacks::DealNewHandCallback;
+pub use callbacks::RevealCommunityCardsCallback;
+pub use callbacks::DetermineWinnerCallback;
 
 // Re-export commonly used types and constants
 // Note: ID_CONST is already defined by declare_id! macro
@@ -37,13 +28,6 @@ pub mod veridian_holdem {
 
     /// Initializes the global configuration for the platform.
     /// This instruction can only be called once by the designated program deployer/admin.
-    ///
-    /// # Arguments
-    ///
-    /// * `ctx` - The context containing accounts for initializing the config.
-    /// * `treasury_wallet` - The public key of the wallet that will receive rake fees.
-    /// * `rake_percentage` - The percentage of the pot to be taken as rake (e.g., 5 for 5%).
-    /// * `rake_cap` - The maximum rake amount that can be taken from a single pot.
     pub fn initialize_config(
         ctx: Context<InitializeConfig>,
         treasury_wallet: Pubkey,
@@ -55,12 +39,6 @@ pub mod veridian_holdem {
 
     /// Updates the rake configuration.
     /// Only the current admin, as stored in the `Config` account, can call this instruction.
-    ///
-    /// # Arguments
-    ///
-    /// * `ctx` - The context containing accounts for setting the rake config.
-    /// * `rake_percentage` - The new rake percentage.
-    /// * `rake_cap` - The new maximum rake amount.
     pub fn set_rake_config(
         ctx: Context<SetRakeConfig>,
         rake_percentage: u8,
@@ -70,16 +48,6 @@ pub mod veridian_holdem {
     }
 
     /// Creates a new poker table with a specific configuration.
-    /// This initializes the `TableConfig`, `GameState`, and token `Escrow` PDAs.
-    /// The creator's buy-in is transferred into the escrow account.
-    ///
-    /// # Arguments
-    ///
-    /// * `ctx` - The context containing accounts for table creation.
-    /// * `table_id` - A unique u64 identifier for the new table.
-    /// * `small_blind` - The small blind amount.
-    /// * `big_blind` - The big blind amount.
-    /// * `buy_in` - The amount of tokens required to join.
     pub fn create_table(
         ctx: Context<CreateTable>,
         table_id: u64,
@@ -91,12 +59,6 @@ pub mod veridian_holdem {
     }
 
     /// Allows a second player to join an existing, open poker table.
-    /// This instruction validates that the table has an open seat, then transfers the
-    /// joiner's buy-in into the escrow and marks the game as active.
-    ///
-    /// # Arguments
-    ///
-    /// * `ctx` - The context containing accounts for joining the table.
     pub fn join_table(ctx: Context<JoinTable>) -> Result<()> {
         instructions::join_table::join_table(ctx)
     }
@@ -133,4 +95,88 @@ pub mod veridian_holdem {
     pub fn crank_fold(ctx: Context<CrankFold>) -> Result<()> {
         instructions::crank_fold::crank_fold(ctx)
     }
+
+    // --- Arcium Callbacks ---
+
+    #[arcium_callback(encrypted_ix = "shuffle_and_deal")]
+    pub fn shuffle_and_deal_callback(
+        ctx: Context<DealNewHandCallback>,
+        output: ComputationOutputs<ShuffleAndDealOutput>,
+    ) -> Result<()> {
+        callbacks::shuffle_and_deal_callback(ctx, output)
+    }
+
+    #[arcium_callback(encrypted_ix = "reveal_community_cards")]
+    pub fn reveal_community_cards_callback(
+        ctx: Context<RevealCommunityCardsCallback>,
+        output: ComputationOutputs<RevealCommunityCardsOutput>,
+    ) -> Result<()> {
+        callbacks::reveal_community_cards_callback(ctx, output)
+    }
+
+    #[arcium_callback(encrypted_ix = "determine_winner")]
+    pub fn determine_winner_callback(
+        ctx: Context<DetermineWinnerCallback>,
+        output: ComputationOutputs<DetermineWinnerOutput>,
+    ) -> Result<()> {
+        callbacks::determine_winner_callback(ctx, output)
+    }
+
+    // --- Arcium Comp Def Initializers ---
+    // These instructions are required to register the Arcis circuits on-chain.
+    
+    pub fn init_shuffle_and_deal_comp_def(ctx: Context<InitShuffleAndDealCompDef>) -> Result<()> {
+        init_comp_def(ctx.accounts, true, 0, None, None)?;
+        Ok(())
+    }
+    
+    pub fn init_reveal_community_cards_comp_def(ctx: Context<InitRevealCommunityCardsCompDef>) -> Result<()> {
+        init_comp_def(ctx.accounts, true, 0, None, None)?;
+        Ok(())
+    }
+
+    pub fn init_determine_winner_comp_def(ctx: Context<InitDetermineWinnerCompDef>) -> Result<()> {
+        init_comp_def(ctx.accounts, true, 0, None, None)?;
+        Ok(())
+    }
+}
+
+// --- Arcium Comp Def Contexts ---
+#[init_computation_definition_accounts("shuffle_and_deal", payer)]
+#[derive(Accounts)]
+pub struct InitShuffleAndDealCompDef<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut, address = derive_mxe_pda!())]
+    pub mxe_account: Box<Account<'info, MXEAccount>>,
+    #[account(mut)]
+    pub comp_def_account: UncheckedAccount<'info>,
+    pub arcium_program: Program<'info, Arcium>,
+    pub system_program: Program<'info, System>,
+}
+
+#[init_computation_definition_accounts("reveal_community_cards", payer)]
+#[derive(Accounts)]
+pub struct InitRevealCommunityCardsCompDef<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut, address = derive_mxe_pda!())]
+    pub mxe_account: Box<Account<'info, MXEAccount>>,
+    #[account(mut)]
+    pub comp_def_account: UncheckedAccount<'info>,
+    pub arcium_program: Program<'info, Arcium>,
+    pub system_program: Program<'info, System>,
+}
+
+#[init_computation_definition_accounts("determine_winner", payer)]
+#[derive(Accounts)]
+pub struct InitDetermineWinnerCompDef<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut, address = derive_mxe_pda!())]
+    pub mxe_account: Box<Account<'info, MXEAccount>>,
+    #[account(mut)]
+    pub comp_def_account: UncheckedAccount<'info>,
+    pub arcium_program: Program<'info, Arcium>,
+    pub system_program: Program<'info, System>,
 }
