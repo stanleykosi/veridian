@@ -89,30 +89,7 @@ pub mod veridian_holdem {
     }
 
     // --- Arcium Callbacks ---
-
-    #[arcium_callback(encrypted_ix = "shuffle_and_deal")]
-    pub fn shuffle_and_deal_callback(
-        ctx: Context<DealNewHandCallback>,
-        output: ComputationOutputs<ShuffleAndDealOutput>,
-    ) -> Result<()> {
-        callbacks::shuffle_and_deal_callback(ctx, output)
-    }
-
-    #[arcium_callback(encrypted_ix = "reveal_community_cards")]
-    pub fn reveal_community_cards_callback(
-        ctx: Context<RevealCommunityCardsCallback>,
-        output: ComputationOutputs<RevealCommunityCardsOutput>,
-    ) -> Result<()> {
-        callbacks::reveal_community_cards_callback(ctx, output)
-    }
-
-    #[arcium_callback(encrypted_ix = "determine_winner")]
-    pub fn determine_winner_callback(
-        ctx: Context<DetermineWinnerCallback>,
-        output: ComputationOutputs<DetermineWinnerOutput>,
-    ) -> Result<()> {
-        callbacks::determine_winner_callback(ctx, output)
-    }
+    // Callbacks are defined in the callbacks module
 
     // --- Arcium Comp Def Initializers ---
     // These instructions are required to register the Arcis circuits on-chain.
@@ -141,6 +118,7 @@ pub struct InitShuffleAndDealCompDef<'info> {
     pub payer: Signer<'info>,
     #[account(mut, address = derive_mxe_pda!())]
     pub mxe_account: Box<Account<'info, MXEAccount>>,
+    /// CHECK: This account is validated by the Arcium program
     #[account(mut)]
     pub comp_def_account: UncheckedAccount<'info>,
     pub arcium_program: Program<'info, Arcium>,
@@ -154,6 +132,7 @@ pub struct InitRevealCommunityCardsCompDef<'info> {
     pub payer: Signer<'info>,
     #[account(mut, address = derive_mxe_pda!())]
     pub mxe_account: Box<Account<'info, MXEAccount>>,
+    /// CHECK: This account is validated by the Arcium program
     #[account(mut)]
     pub comp_def_account: UncheckedAccount<'info>,
     pub arcium_program: Program<'info, Arcium>,
@@ -167,6 +146,7 @@ pub struct InitDetermineWinnerCompDef<'info> {
     pub payer: Signer<'info>,
     #[account(mut, address = derive_mxe_pda!())]
     pub mxe_account: Box<Account<'info, MXEAccount>>,
+    /// CHECK: This account is validated by the Arcium program
     #[account(mut)]
     pub comp_def_account: UncheckedAccount<'info>,
     pub arcium_program: Program<'info, Arcium>,

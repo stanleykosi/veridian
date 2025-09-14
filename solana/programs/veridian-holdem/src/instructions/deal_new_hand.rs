@@ -16,6 +16,7 @@
  */
 
 use crate::{
+    callbacks::DealNewHandCallback,
     error::ErrorCode,
     state::{GamePhase, GameState, HandState, SignerAccount},
     ID,
@@ -134,7 +135,7 @@ pub fn deal_new_hand(ctx: Context<DealNewHand>, computation_offset: u64) -> Resu
         computation_offset,
         args,
         Some(callback_accounts),
-        vec![],
+        vec![DealNewHandCallback::callback_ix(&[])],
     )?;
 
     Ok(())

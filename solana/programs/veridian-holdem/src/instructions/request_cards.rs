@@ -13,6 +13,7 @@
  * - anchor_lang & arcium_anchor: For Solana and Arcium integration.
  */
 use crate::{
+    callbacks::{RevealCommunityCardsCallback, DetermineWinnerCallback},
     error::ErrorCode,
     state::{Config, GamePhase, GameState, HandState, SignerAccount},
     ID,
@@ -155,7 +156,7 @@ pub fn request_community_cards(
 
     let callback_accounts = String::new();
 
-    queue_computation(ctx.accounts, computation_offset, args, Some(callback_accounts), vec![])?;
+    queue_computation(ctx.accounts, computation_offset, args, Some(callback_accounts), vec![RevealCommunityCardsCallback::callback_ix(&[])])?;
 
     Ok(())
 }
@@ -178,7 +179,7 @@ pub fn request_showdown(ctx: Context<RequestShowdown>, computation_offset: u64) 
 
     let callback_accounts = String::new();
 
-    queue_computation(ctx.accounts, computation_offset, args, Some(callback_accounts), vec![])?;
+    queue_computation(ctx.accounts, computation_offset, args, Some(callback_accounts), vec![DetermineWinnerCallback::callback_ix(&[])])?;
     
     Ok(())
 }

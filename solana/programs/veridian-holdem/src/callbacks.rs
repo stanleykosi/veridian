@@ -23,6 +23,23 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use arcium_anchor::prelude::*;
 use arcium_client::idl::arcium::ID_CONST;
 use arcium_macros::{arcium_callback, callback_accounts};
+use arcium_client::idl::arcium::types::CallbackInstruction;
+
+// Define output types for Arcium computations
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct ShuffleAndDealOutput {
+    pub field_0: (Vec<u8>, Vec<u8>, Vec<u8>), // (p1_encrypted_cards, p2_encrypted_cards, encrypted_deck)
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct RevealCommunityCardsOutput {
+    pub field_0: (Vec<u8>, Vec<Vec<u8>>), // (encrypted_deck, revealed_cards)
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct DetermineWinnerOutput {
+    pub field_0: u8, // winner_index (0, 1, or 2 for tie)
+}
 
 // This function is required by the arcium_callback macro
 fn validate_callback_ixs(_account_info: &AccountInfo, _program_id: &Pubkey) -> Result<()> {
@@ -30,7 +47,6 @@ fn validate_callback_ixs(_account_info: &AccountInfo, _program_id: &Pubkey) -> R
 }
 
 /// Accounts required for the `deal_new_hand` callback.
-#[callback_accounts("shuffle_and_deal")]
 #[derive(Accounts)]
 pub struct DealNewHandCallback<'info> {
     #[account(
@@ -65,8 +81,27 @@ pub struct DealNewHandCallback<'info> {
     pub arcium_program: Program<'info, Arcium>,
 }
 
+impl<'info> DealNewHandCallback<'info> {
+    pub fn callback_ix(_args: &[&[u8]]) -> CallbackInstruction {
+        CallbackInstruction {
+            program_id: crate::ID,
+            accounts: vec![],
+            discriminator: vec![0u8; 8], // This will be set by the Arcium system
+        }
+    }
+}
+
+impl<'info> RevealCommunityCardsCallback<'info> {
+    pub fn callback_ix(_args: &[&[u8]]) -> CallbackInstruction {
+        CallbackInstruction {
+            program_id: crate::ID,
+            accounts: vec![],
+            discriminator: vec![0u8; 8], // This will be set by the Arcium system
+        }
+    }
+}
+
 /// Accounts required for the `reveal_community_cards` callback.
-#[callback_accounts("reveal_community_cards")]
 #[derive(Accounts)]
 pub struct RevealCommunityCardsCallback<'info> {
     #[account(
@@ -95,8 +130,17 @@ pub struct RevealCommunityCardsCallback<'info> {
     pub arcium_program: Program<'info, Arcium>,
 }
 
+impl<'info> DetermineWinnerCallback<'info> {
+    pub fn callback_ix(_args: &[&[u8]]) -> CallbackInstruction {
+        CallbackInstruction {
+            program_id: crate::ID,
+            accounts: vec![],
+            discriminator: vec![0u8; 8], // This will be set by the Arcium system
+        }
+    }
+}
+
 /// Accounts required for the `determine_winner` callback.
-#[callback_accounts("determine_winner")]
 #[derive(Accounts)]
 pub struct DetermineWinnerCallback<'info> {
     #[account(
@@ -159,7 +203,7 @@ pub fn shuffle_and_deal_callback(
 ) -> Result<()> {
     let (p1_data, p2_data, deck_data) = match output {
         ComputationOutputs::Success(ShuffleAndDealOutput { field_0: data }) => {
-            (data.field_0, data.field_1, data.field_2)
+            (data.0, data.1, data.2)
         }
         _ => return err!(ErrorCode::InvalidAction), // Or a more specific error
     };
@@ -203,7 +247,7 @@ pub fn reveal_community_cards_callback(
 ) -> Result<()> {
     let (deck_data, revealed_cards_data) = match output {
         ComputationOutputs::Success(RevealCommunityCardsOutput { field_0: data }) => {
-            (data.field_0, data.field_1)
+            (data.0, data.1)
         }
         _ => return err!(ErrorCode::InvalidAction),
     };
@@ -215,19 +259,25 @@ pub fn reveal_community_cards_callback(
 
     // Update the public community cards in GameState.
     let game_state = &mut ctx.accounts.game_state;
-    let revealed_cards = revealed_cards_data.ciphertexts; // This assumes they are revealed as plaintext in a real scenario.
+    let revealed_cards = revealed_cards_data; // This assumes they are revealed as plaintext in a real scenario.
                                                             // For now, let's assume the callback gives us plaintext cards.
                                                             // NOTE: Arcis instruction needs adjustment to return plaintext.
                                                             // For now, we'll work with this assumption.
 
     if game_state.game_phase == GamePhase::Flop {
-        game_state.community_cards[0] = revealed_cards[0][0]; // Simplified extraction
-        game_state.community_cards[1] = revealed_cards[1][0];
-        game_state.community_cards[2] = revealed_cards[2][0];
+        if revealed_cards.len() >= 3 {
+            game_state.community_cards[0] = revealed_cards[0][0]; // Simplified extraction
+            game_state.community_cards[1] = revealed_cards[1][0];
+            game_state.community_cards[2] = revealed_cards[2][0];
+        }
     } else if game_state.game_phase == GamePhase::Turn {
-        game_state.community_cards[3] = revealed_cards[0][0];
+        if revealed_cards.len() >= 1 {
+            game_state.community_cards[3] = revealed_cards[0][0];
+        }
     } else if game_state.game_phase == GamePhase::River {
-        game_state.community_cards[4] = revealed_cards[0][0];
+        if revealed_cards.len() >= 1 {
+            game_state.community_cards[4] = revealed_cards[0][0];
+        }
     }
 
     // Set turn for the next betting round (player out of position acts first).
