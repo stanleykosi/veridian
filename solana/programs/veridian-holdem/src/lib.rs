@@ -7,17 +7,8 @@ pub mod instructions;
 pub mod state;
 
 // Re-export modules to make their contents easily accessible to other parts of the program.
-use callbacks::*;
 use instructions::*;
 pub use state::*;
-
-// Explicitly export the callback structs to fix privacy issues
-pub use callbacks::DealNewHandCallback;
-pub use callbacks::RevealCommunityCardsCallback;
-pub use callbacks::DetermineWinnerCallback;
-
-// Re-export commonly used types and constants
-// Note: ID_CONST is already defined by declare_id! macro
 
 // The unique on-chain address of the Veridian Hold'em program.
 declare_id!("Cd23WfyTo2XjmswN1n8WvcWARUJiTjXtK4wnLmwxh7in");
@@ -25,6 +16,7 @@ declare_id!("Cd23WfyTo2XjmswN1n8WvcWARUJiTjXtK4wnLmwxh7in");
 #[arcium_program]
 pub mod veridian_holdem {
     use super::*;
+    use crate::callbacks;
 
     /// Initializes the global configuration for the platform.
     /// This instruction can only be called once by the designated program deployer/admin.

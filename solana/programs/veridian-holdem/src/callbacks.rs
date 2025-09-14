@@ -65,10 +65,6 @@ pub struct DealNewHandCallback<'info> {
     pub arcium_program: Program<'info, Arcium>,
 }
 
-impl<'info> anchor_lang::Discriminator for DealNewHandCallback<'info> {
-    const DISCRIMINATOR: &'static [u8] = &[1, 2, 3, 4, 5, 6, 7, 8]; // Placeholder discriminator
-}
-
 /// Accounts required for the `reveal_community_cards` callback.
 #[callback_accounts("reveal_community_cards")]
 #[derive(Accounts)]
@@ -97,10 +93,6 @@ pub struct RevealCommunityCardsCallback<'info> {
     pub instructions_sysvar: AccountInfo<'info>,
     
     pub arcium_program: Program<'info, Arcium>,
-}
-
-impl<'info> anchor_lang::Discriminator for RevealCommunityCardsCallback<'info> {
-    const DISCRIMINATOR: &'static [u8] = &[2, 3, 4, 5, 6, 7, 8, 9]; // Placeholder discriminator
 }
 
 /// Accounts required for the `determine_winner` callback.
@@ -154,10 +146,6 @@ pub struct DetermineWinnerCallback<'info> {
     
     pub token_program: Program<'info, Token>,
     pub arcium_program: Program<'info, Arcium>,
-}
-
-impl<'info> anchor_lang::Discriminator for DetermineWinnerCallback<'info> {
-    const DISCRIMINATOR: &'static [u8] = &[3, 4, 5, 6, 7, 8, 9, 10]; // Placeholder discriminator
 }
 
 // --- Callback Implementations ---
