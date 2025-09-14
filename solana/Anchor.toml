@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-veridian_holdem = "Cd23WfyTo2XjmswN1n8WvcWARUJiTjXtK4wnLmwxh7in"
+veridian_holdem = "Grax8NuUaPo4bA43PiYkAhdLvU7Vts2o8Gk16TdV6ZEQ"
 
 [registry]
 url = "https://api.apr.dev"

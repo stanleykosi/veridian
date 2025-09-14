@@ -11,7 +11,7 @@ use instructions::*;
 pub use state::*;
 
 // The unique on-chain address of the Veridian Hold'em program.
-declare_id!("Cd23WfyTo2XjmswN1n8WvcWARUJiTjXtK4wnLmwxh7in");
+declare_id!("Grax8NuUaPo4bA43PiYkAhdLvU7Vts2o8Gk16TdV6ZEQ");
 
 #[arcium_program]
 pub mod veridian_holdem {
