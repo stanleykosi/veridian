@@ -16,7 +16,6 @@
  */
 
 use crate::{
-    callbacks::DealNewHandCallback,
     error::ErrorCode,
     state::{GamePhase, GameState, HandState, SignerAccount},
     ID,
@@ -26,11 +25,10 @@ use arcium_anchor::prelude::*;
 use arcium_client::idl::arcium::accounts::{ClockAccount, FeePool};
 use arcium_client::idl::arcium::ID_CONST;
 
-/// Defines the accounts required to deal a new hand.
-#[queue_computation_accounts("shuffle_and_deal", payer)]
+/// Defines the minimal accounts required to prepare a new hand (setup only).
 #[derive(Accounts)]
 #[instruction(computation_offset: u64)]
-pub struct DealNewHand<'info> {
+pub struct DealNewHandSetup<'info> {
     /// The signer of the transaction, who must be the current dealer.
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -63,35 +61,12 @@ pub struct DealNewHand<'info> {
     )]
     pub sign_pda_account: Account<'info, SignerAccount>,
 
-    // --- Arcium Required Accounts ---
-    #[account(address = derive_mxe_pda!())]
-    pub mxe_account: Account<'info, MXEAccount>,
-    #[account(mut, address = derive_mempool_pda!())]
-    /// CHECK: Checked by Arcium program
-    pub mempool_account: UncheckedAccount<'info>,
-    #[account(mut, address = derive_execpool_pda!())]
-    /// CHECK: Checked by Arcium program
-    pub executing_pool: UncheckedAccount<'info>,
-    #[account(mut, address = derive_comp_pda!(computation_offset))]
-    /// CHECK: Checked by Arcium program
-    pub computation_account: UncheckedAccount<'info>,
-    #[account(address = derive_comp_def_pda!(comp_def_offset("shuffle_and_deal")))]
-    pub comp_def_account: Account<'info, ComputationDefinitionAccount>,
-    #[account(mut, address = derive_cluster_pda!(mxe_account))]
-    pub cluster_account: Account<'info, Cluster>,
-    #[account(mut, address = ARCIUM_FEE_POOL_ACCOUNT_ADDRESS,)]
-    pub pool_account: Account<'info, FeePool>,
-    #[account(address = ARCIUM_CLOCK_ACCOUNT_ADDRESS,)]
-    pub clock_account: Account<'info, ClockAccount>,
-    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
-    /// CHECK: instructions sysvar
-    pub instructions_sysvar: AccountInfo<'info>,
+    /// System program required for init constraints
     pub system_program: Program<'info, System>,
-    pub arcium_program: Program<'info, Arcium>,
 }
 
-/// The handler function for the `deal_new_hand` instruction.
-pub fn deal_new_hand(ctx: Context<DealNewHand>, computation_offset: u64) -> Result<()> {
+/// The handler function for the setup step of `deal_new_hand`.
+pub fn deal_new_hand_setup(ctx: Context<DealNewHandSetup>, computation_offset: u64) -> Result<()> {
     let game_state = &mut ctx.accounts.game_state;
     let payer = &ctx.accounts.payer;
 
@@ -118,25 +93,76 @@ pub fn deal_new_hand(ctx: Context<DealNewHand>, computation_offset: u64) -> Resu
     game_state.last_action_timestamp = Clock::get()?.unix_timestamp;
     
     ctx.accounts.hand_state.computation_offset = computation_offset;
-
-    // 3. Queue the `shuffle_and_deal` Arcium computation.
-    // The client will provide the Arcis-specific public keys for each player.
-    // These arguments are passed through from the client-side transaction builder.
-    // For now, we assume they are passed correctly as part of the `ctx.remaining_accounts`.
-    let args = vec![]; // Player pubkeys will be passed by the client.
-
     ctx.accounts.sign_pda_account.bump = ctx.bumps.sign_pda_account;
 
-    // Define the accounts needed by the callback.
-    let callback_accounts = String::new();
+    Ok(())
+}
 
+/// Minimal Arcium queue context to avoid BPF stack overflow
+#[queue_computation_accounts("shuffle_and_deal", payer)]
+#[derive(Accounts)]
+#[instruction(computation_offset: u64)]
+pub struct DealNewHandQueue<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"game", &game_state.table_id.to_le_bytes()[..]],
+        bump
+    )]
+    pub game_state: Account<'info, GameState>,
+
+    #[account(
+        mut,
+        seeds = [b"hand", game_state.key().as_ref()],
+        bump,
+    )]
+    pub hand_state: Account<'info, HandState>,
+
+    /// Required signer PDA for Arcium operations (already initialized in setup)
+    #[account(
+        seeds = [b"sign_pda"],
+        bump
+    )]
+    pub sign_pda_account: Account<'info, SignerAccount>,
+
+    // Arcium
+    #[account(address = derive_mxe_pda!())]
+    pub mxe_account: Account<'info, MXEAccount>,
+    #[account(mut, address = derive_mempool_pda!())]
+    /// CHECK: Arcium validates
+    pub mempool_account: UncheckedAccount<'info>,
+    #[account(mut, address = derive_execpool_pda!())]
+    /// CHECK: Arcium validates
+    pub executing_pool: UncheckedAccount<'info>,
+    #[account(mut, address = derive_comp_pda!(computation_offset))]
+    /// CHECK: Arcium validates
+    pub computation_account: UncheckedAccount<'info>,
+    #[account(address = derive_comp_def_pda!(comp_def_offset("shuffle_and_deal")))]
+    pub comp_def_account: Account<'info, ComputationDefinitionAccount>,
+    #[account(mut, address = derive_cluster_pda!(mxe_account))]
+    pub cluster_account: Account<'info, Cluster>,
+    #[account(mut, address = ARCIUM_FEE_POOL_ACCOUNT_ADDRESS)]
+    pub pool_account: Account<'info, FeePool>,
+    #[account(address = ARCIUM_CLOCK_ACCOUNT_ADDRESS)]
+    pub clock_account: Account<'info, ClockAccount>,
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    /// CHECK: sysvar
+    pub instructions_sysvar: AccountInfo<'info>,
+    pub system_program: Program<'info, System>,
+    pub arcium_program: Program<'info, Arcium>,
+}
+
+pub fn deal_new_hand_queue(ctx: Context<DealNewHandQueue>, computation_offset: u64) -> Result<()> {
+    // queue computation only
+    let args = vec![];
     queue_computation(
         ctx.accounts,
         computation_offset,
         args,
-        Some(callback_accounts),
-        vec![DealNewHandCallback::callback_ix(&[])],
+        Some(String::new()),
+        vec![],
     )?;
-
     Ok(())
 }

@@ -17,12 +17,13 @@
 use crate::{
     error::ErrorCode,
     state::{Config, GamePhase, GameState, HandState, TableConfig, MAX_PLAYERS},
+    ID,
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use arcium_anchor::prelude::*;
 use arcium_client::idl::arcium::ID_CONST;
-use arcium_macros::{arcium_callback, callback_accounts};
+use arcium_macros::arcium_callback;
 use arcium_client::idl::arcium::types::CallbackInstruction;
 
 // Define output types for Arcium computations

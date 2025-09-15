@@ -17,7 +17,6 @@ declare_id!("Grax8NuUaPo4bA43PiYkAhdLvU7Vts2o8Gk16TdV6ZEQ");
 #[arcium_program]
 pub mod veridian_holdem {
     use super::*;
-    use crate::callbacks;
 
     /// Initializes the global configuration for the platform.
     /// This instruction can only be called once by the designated program deployer/admin.
@@ -56,9 +55,14 @@ pub mod veridian_holdem {
         instructions::join_table::join_table(ctx)
     }
 
-    /// Initiates a new hand by triggering the confidential shuffle and deal computation.
-    pub fn deal_new_hand(ctx: Context<DealNewHand>, computation_offset: u64) -> Result<()> {
-        instructions::deal_new_hand::deal_new_hand(ctx, computation_offset)
+    /// Step A: prepare accounts for a new hand (no Arcium queue here).
+    pub fn deal_new_hand_setup(ctx: Context<DealNewHandSetup>, computation_offset: u64) -> Result<()> {
+        instructions::deal_new_hand::deal_new_hand_setup(ctx, computation_offset)
+    }
+
+    /// Step B: queue the confidential shuffle and deal computation with a minimal Arcium context.
+    pub fn deal_new_hand_queue(ctx: Context<DealNewHandQueue>, computation_offset: u64) -> Result<()> {
+        instructions::deal_new_hand::deal_new_hand_queue(ctx, computation_offset)
     }
 
     /// Processes a player's action (Fold, Check, Call, Bet, Raise).
