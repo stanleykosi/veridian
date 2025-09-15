@@ -119,8 +119,8 @@ pub struct GameState {
 #[derive(InitSpace)]
 pub struct HandState {
     /// Encrypted hole cards for each player. Each blob contains a serialized `SharedEncryptedStruct<2>`
-    /// from Arcium, which includes the public key, nonce, and two ciphertexts. Size is padded to 128 bytes.
-    pub encrypted_hole_cards: [[u8; 128]; MAX_PLAYERS],
+    /// from Arcium, which includes the public key, nonce, and two ciphertexts. Size is padded to 64 bytes.
+    pub encrypted_hole_cards: [[u8; 64]; MAX_PLAYERS],
     /// The remaining 48 cards of the deck plus metadata, encrypted as a single blob for use by the Arcium MXE.
     /// This stores a serialized `MXEEncryptedStruct<49>`, which is 16 bytes for the nonce
     /// and 49 * 32 = 1568 bytes for the ciphertexts, totaling 1584 bytes.
