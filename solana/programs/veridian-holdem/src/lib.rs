@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use arcium_anchor::prelude::*;
+use arcium_client::idl::arcium::types::{CircuitSource, OffChainCircuitSource};
 
 pub mod callbacks;
 pub mod error;
@@ -95,17 +96,44 @@ pub mod veridian_holdem {
     // These instructions are required to register the Arcis circuits on-chain.
     
     pub fn init_shuffle_and_deal_comp_def(ctx: Context<InitShuffleAndDealCompDef>) -> Result<()> {
-        init_comp_def(ctx.accounts, true, 0, None, None)?;
+        init_comp_def(
+            ctx.accounts,
+            true,
+            0,
+            Some(CircuitSource::OffChain(OffChainCircuitSource {
+                source: "https://arcium.s3.us-east-1.amazonaws.com/shuffle_and_deal_testnet.arcis".to_string(),
+                hash: [0; 32],
+            })),
+            None,
+        )?;
         Ok(())
     }
     
     pub fn init_reveal_community_cards_comp_def(ctx: Context<InitRevealCommunityCardsCompDef>) -> Result<()> {
-        init_comp_def(ctx.accounts, true, 0, None, None)?;
+        init_comp_def(
+            ctx.accounts,
+            true,
+            0,
+            Some(CircuitSource::OffChain(OffChainCircuitSource {
+                source: "https://arcium.s3.us-east-1.amazonaws.com/reveal_community_cards_testnet.arcis".to_string(),
+                hash: [0; 32],
+            })),
+            None,
+        )?;
         Ok(())
     }
 
     pub fn init_determine_winner_comp_def(ctx: Context<InitDetermineWinnerCompDef>) -> Result<()> {
-        init_comp_def(ctx.accounts, true, 0, None, None)?;
+        init_comp_def(
+            ctx.accounts,
+            true,
+            0,
+            Some(CircuitSource::OffChain(OffChainCircuitSource {
+                source: "https://arcium.s3.us-east-1.amazonaws.com/determine_winner_testnet.arcis".to_string(),
+                hash: [0; 32],
+            })),
+            None,
+        )?;
         Ok(())
     }
 }
