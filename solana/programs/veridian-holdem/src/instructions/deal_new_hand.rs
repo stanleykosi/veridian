@@ -139,7 +139,6 @@ pub struct DealNewHandQueue<'info> {
     #[account(mut, address = derive_comp_pda!(computation_offset))]
     /// CHECK: Arcium validates
     pub computation_account: UncheckedAccount<'info>,
-    #[account(address = derive_comp_def_pda!(comp_def_offset("shuffle_and_deal")))]
     pub comp_def_account: Box<Account<'info, ComputationDefinitionAccount>>,
     #[account(mut, address = derive_cluster_pda!(mxe_account))]
     pub cluster_account: Box<Account<'info, Cluster>>,

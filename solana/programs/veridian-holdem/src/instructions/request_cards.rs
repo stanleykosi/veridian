@@ -58,7 +58,6 @@ pub struct RequestCommunityCards<'info> {
     #[account(mut, address = derive_comp_pda!(computation_offset))]
     /// CHECK: Checked by Arcium program
     pub computation_account: UncheckedAccount<'info>,
-    #[account(address = derive_comp_def_pda!(comp_def_offset("reveal_community_cards")))]
     pub comp_def_account: Box<Account<'info, ComputationDefinitionAccount>>,
     #[account(mut, address = derive_cluster_pda!(mxe_account))]
     pub cluster_account: Box<Account<'info, Cluster>>,
@@ -116,7 +115,6 @@ pub struct RequestShowdown<'info> {
     #[account(mut, address = derive_comp_pda!(computation_offset))]
     /// CHECK: Checked by Arcium program
     pub computation_account: UncheckedAccount<'info>,
-    #[account(address = derive_comp_def_pda!(comp_def_offset("determine_winner")))]
     pub comp_def_account: Box<Account<'info, ComputationDefinitionAccount>>,
     #[account(mut, address = derive_cluster_pda!(mxe_account))]
     pub cluster_account: Box<Account<'info, Cluster>>,

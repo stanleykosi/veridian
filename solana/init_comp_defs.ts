@@ -100,6 +100,7 @@ async function initCompDef(
   const baseSeedCompDefAcc = getArciumAccountBaseSeed("ComputationDefinitionAccount");
   const offset = getCompDefAccOffset(instructionName);
 
+  // Derive with our program id as seed and Arcium program as PDA program
   const compDefPDA = PublicKey.findProgramAddressSync(
     [baseSeedCompDefAcc, program.programId.toBuffer(), offset],
     getArciumProgAddress()
@@ -116,7 +117,6 @@ async function initCompDef(
       compDefAccount: compDefPDA,
       payer: owner.publicKey,
       mxeAccount: getMXEAccAddress(program.programId),
-      clusterAccount: clusterAccount,
       systemProgram: anchor.web3.SystemProgram.programId,
       arciumProgram: getArciumProgAddress(),
     })
