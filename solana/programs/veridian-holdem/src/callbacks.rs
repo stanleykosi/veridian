@@ -62,7 +62,7 @@ pub struct DealNewHandCallback<'info> {
         seeds = [b"hand", game_state.key().as_ref()],
         bump
     )]
-    pub hand_state: Account<'info, HandState>,
+    pub hand_state: Box<Account<'info, HandState>>,
 
     #[account(
         seeds = [b"table_config", &game_state.table_id.to_le_bytes()[..]],
@@ -117,7 +117,7 @@ pub struct RevealCommunityCardsCallback<'info> {
         seeds = [b"hand", game_state.key().as_ref()],
         bump
     )]
-    pub hand_state: Account<'info, HandState>,
+    pub hand_state: Box<Account<'info, HandState>>,
     
     #[account(
         address = derive_comp_def_pda!(comp_def_offset("reveal_community_cards"))
@@ -157,7 +157,7 @@ pub struct DetermineWinnerCallback<'info> {
         bump,
         close = dealer_account // Close the HandState account and refund rent to the dealer.
     )]
-    pub hand_state: Account<'info, HandState>,
+    pub hand_state: Box<Account<'info, HandState>>,
 
     #[account(
         seeds = [b"config"],
@@ -219,7 +219,23 @@ pub fn shuffle_and_deal_callback(
     hand_state.encrypted_hole_cards[1][..p2_vec.len()].copy_from_slice(&p2_vec);
     
     let deck_vec = deck_data.try_to_vec()?;
-    hand_state.encrypted_deck[..deck_vec.len()].copy_from_slice(&deck_vec);
+    // Split the deck data across the four parts
+    let total_len = deck_vec.len();
+    let part1_len = total_len.min(512);
+    let part2_len = (total_len - part1_len).min(512);
+    let part3_len = (total_len - part1_len - part2_len).min(512);
+    let part4_len = total_len - part1_len - part2_len - part3_len;
+    
+    hand_state.encrypted_deck_part1[..part1_len].copy_from_slice(&deck_vec[..part1_len]);
+    if part2_len > 0 {
+        hand_state.encrypted_deck_part2[..part2_len].copy_from_slice(&deck_vec[part1_len..part1_len + part2_len]);
+    }
+    if part3_len > 0 {
+        hand_state.encrypted_deck_part3[..part3_len].copy_from_slice(&deck_vec[part1_len + part2_len..part1_len + part2_len + part3_len]);
+    }
+    if part4_len > 0 {
+        hand_state.encrypted_deck_part4[..part4_len].copy_from_slice(&deck_vec[part1_len + part2_len + part3_len..]);
+    }
 
     // Post blinds.
     let game_state = &mut ctx.accounts.game_state;
@@ -256,7 +272,23 @@ pub fn reveal_community_cards_callback(
     // Update the encrypted deck in HandState.
     let hand_state = &mut ctx.accounts.hand_state;
     let deck_vec = deck_data.try_to_vec()?;
-    hand_state.encrypted_deck[..deck_vec.len()].copy_from_slice(&deck_vec);
+    // Split the deck data across the four parts
+    let total_len = deck_vec.len();
+    let part1_len = total_len.min(512);
+    let part2_len = (total_len - part1_len).min(512);
+    let part3_len = (total_len - part1_len - part2_len).min(512);
+    let part4_len = total_len - part1_len - part2_len - part3_len;
+    
+    hand_state.encrypted_deck_part1[..part1_len].copy_from_slice(&deck_vec[..part1_len]);
+    if part2_len > 0 {
+        hand_state.encrypted_deck_part2[..part2_len].copy_from_slice(&deck_vec[part1_len..part1_len + part2_len]);
+    }
+    if part3_len > 0 {
+        hand_state.encrypted_deck_part3[..part3_len].copy_from_slice(&deck_vec[part1_len + part2_len..part1_len + part2_len + part3_len]);
+    }
+    if part4_len > 0 {
+        hand_state.encrypted_deck_part4[..part4_len].copy_from_slice(&deck_vec[part1_len + part2_len + part3_len..]);
+    }
 
     // Update the public community cards in GameState.
     let game_state = &mut ctx.accounts.game_state;

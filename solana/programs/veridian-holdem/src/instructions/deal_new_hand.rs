@@ -49,7 +49,7 @@ pub struct DealNewHandSetup<'info> {
         seeds = [b"hand", game_state.key().as_ref()],
         bump,
     )]
-    pub hand_state: Account<'info, HandState>,
+    pub hand_state: Box<Account<'info, HandState>>,
 
     /// Required signer PDA for Arcium operations
     #[account(
@@ -118,7 +118,7 @@ pub struct DealNewHandQueue<'info> {
         seeds = [b"hand", game_state.key().as_ref()],
         bump,
     )]
-    pub hand_state: Account<'info, HandState>,
+    pub hand_state: Box<Account<'info, HandState>>,
 
     /// Required signer PDA for Arcium operations (already initialized in setup)
     #[account(
@@ -129,7 +129,7 @@ pub struct DealNewHandQueue<'info> {
 
     // Arcium
     #[account(address = derive_mxe_pda!())]
-    pub mxe_account: Account<'info, MXEAccount>,
+    pub mxe_account: Box<Account<'info, MXEAccount>>,
     #[account(mut, address = derive_mempool_pda!())]
     /// CHECK: Arcium validates
     pub mempool_account: UncheckedAccount<'info>,

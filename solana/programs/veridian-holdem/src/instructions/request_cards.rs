@@ -36,7 +36,7 @@ pub struct RequestCommunityCards<'info> {
     pub game_state: Account<'info, GameState>,
 
     #[account(seeds = [b"hand", game_state.key().as_ref()], bump)]
-    pub hand_state: Account<'info, HandState>,
+    pub hand_state: Box<Account<'info, HandState>>,
 
     #[account(
         init_if_needed,
@@ -49,7 +49,7 @@ pub struct RequestCommunityCards<'info> {
 
     // --- Arcium Required Accounts ---
     #[account(address = derive_mxe_pda!())]
-    pub mxe_account: Account<'info, MXEAccount>,
+    pub mxe_account: Box<Account<'info, MXEAccount>>,
     #[account(mut, address = derive_mempool_pda!())]
     /// CHECK: Checked by Arcium program
     pub mempool_account: UncheckedAccount<'info>,
@@ -86,7 +86,7 @@ pub struct RequestShowdown<'info> {
     pub game_state: Account<'info, GameState>,
 
     #[account(seeds = [b"hand", game_state.key().as_ref()], bump)]
-    pub hand_state: Account<'info, HandState>,
+    pub hand_state: Box<Account<'info, HandState>>,
     
     #[account(seeds = [b"config"], bump)]
     pub config: Account<'info, Config>,
@@ -113,7 +113,7 @@ pub struct RequestShowdown<'info> {
 
     // --- Arcium Required Accounts ---
     #[account(address = derive_mxe_pda!())]
-    pub mxe_account: Account<'info, MXEAccount>,
+    pub mxe_account: Box<Account<'info, MXEAccount>>,
     #[account(mut, address = derive_mempool_pda!())]
     /// CHECK: Checked by Arcium program
     pub mempool_account: UncheckedAccount<'info>,

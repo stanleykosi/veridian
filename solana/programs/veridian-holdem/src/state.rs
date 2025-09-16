@@ -124,7 +124,11 @@ pub struct HandState {
     /// The remaining 48 cards of the deck plus metadata, encrypted as a single blob for use by the Arcium MXE.
     /// This stores a serialized `MXEEncryptedStruct<49>`, which is 16 bytes for the nonce
     /// and 49 * 32 = 1568 bytes for the ciphertexts, totaling 1584 bytes.
-    pub encrypted_deck: [u8; 1584],
+    /// Split into smaller chunks to reduce stack usage.
+    pub encrypted_deck_part1: [u8; 512],
+    pub encrypted_deck_part2: [u8; 512],
+    pub encrypted_deck_part3: [u8; 512],
+    pub encrypted_deck_part4: [u8; 48],
     /// The computation offset used to queue the shuffle instruction. This provides a
     /// verifiable on-chain link for auditing the integrity of the shuffle, as the original
     /// transaction signature is not available inside an instruction.
