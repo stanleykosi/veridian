@@ -16,6 +16,7 @@
  */
 
 use crate::{
+    callbacks::DealNewHandCallback,
     error::ErrorCode,
     state::{GamePhase, GameState, HandState, SignerAccount},
     ID,

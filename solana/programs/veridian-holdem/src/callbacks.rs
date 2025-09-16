@@ -17,7 +17,6 @@
 use crate::{
     error::ErrorCode,
     state::{Config, GamePhase, GameState, HandState, TableConfig, MAX_PLAYERS},
-    ID,
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
@@ -177,7 +176,7 @@ pub struct DetermineWinnerCallback<'info> {
     pub dealer_account: UncheckedAccount<'info>,
     
     /// CHECK: This is the treasury wallet that receives rake.
-    #[account(mut)]
+    #[account(mut, address = config.treasury_wallet)]
     pub treasury_token_account: UncheckedAccount<'info>,
 
     #[account(

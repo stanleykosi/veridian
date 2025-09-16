@@ -15,11 +15,10 @@
 use crate::{
     callbacks::{RevealCommunityCardsCallback, DetermineWinnerCallback},
     error::ErrorCode,
-    state::{Config, GamePhase, GameState, HandState, SignerAccount},
+    state::{GamePhase, GameState, HandState, SignerAccount},
     ID,
 };
 use anchor_lang::prelude::*;
-use anchor_spl::token::TokenAccount;
 use arcium_anchor::prelude::*;
 use arcium_client::idl::arcium::accounts::{ClockAccount, FeePool};
 use arcium_client::idl::arcium::ID_CONST;
@@ -88,14 +87,8 @@ pub struct RequestShowdown<'info> {
     #[account(seeds = [b"hand", game_state.key().as_ref()], bump)]
     pub hand_state: Box<Account<'info, HandState>>,
     
-    #[account(seeds = [b"config"], bump)]
-    pub config: Box<Account<'info, Config>>,
-    
-    #[account(mut, seeds = [b"escrow", game_state.key().as_ref()], bump)]
-    pub escrow_account: Box<Account<'info, TokenAccount>>,
-    
     /// CHECK: The treasury wallet from the config, to be used in the callback.
-    #[account(mut, address = config.treasury_wallet)]
+    #[account(mut)]
     pub treasury_token_account: UncheckedAccount<'info>,
     
     /// CHECK: The dealer of the hand, who will receive the rent refund from HandState.
