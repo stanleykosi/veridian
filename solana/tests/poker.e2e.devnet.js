@@ -51,7 +51,7 @@ async function ensureAirdrop(conn, pubkey, minSol = 0.5) {
     try {
       const latest = await conn.getLatestBlockhash('processed');
       await conn.confirmTransaction({ signature: sig, ...latest }, 'processed');
-    } catch {}
+    } catch { }
     await new Promise(r => setTimeout(r, 1500));
   }
 }
@@ -59,7 +59,7 @@ async function ensureAirdrop(conn, pubkey, minSol = 0.5) {
 async function resolveFeePoolPda(provider, arciumProgramId) {
   const seedsToTry = [
     "FeePool",
-    "FeePoolAccount", 
+    "FeePoolAccount",
     "fee_pool",
   ];
   const expectedDisc = anchorDiscriminator("FeePool");
@@ -109,7 +109,8 @@ describe('Poker E2E (devnet)', () => {
     const gamePda = pda('game', [u64le(tableId)], programId);
     const escrowPda = pda('escrow', [gamePda.toBuffer()], programId);
     const handPda = pda('hand', [gamePda.toBuffer()], programId);
-    const signPda = pda('sign_pda', [], programId);
+    // Use the macro-derived v0.3 PDA for sign PDA
+    const signPda = new PublicKey('BkkX4G853JQZtsvVSbGb4UA3BLzbaktq8Sw1X75w8paB');
 
     // Create SPL mint for the table currency (creator is mint authority)
     await ensureAirdrop(connection, wallet.publicKey, 2);
@@ -262,7 +263,7 @@ describe('Poker E2E (devnet)', () => {
       systemProgram,
       arciumProgram,
     };
-    
+
     console.log('=== ACCOUNTS OBJECT DEBUG ===');
     console.log('compDefAccount in accounts object:', accountsObject.compDefAccount.toBase58());
     console.log('shuffleAndDealCompDefAccount variable:', shuffleAndDealCompDefAccount.toBase58());

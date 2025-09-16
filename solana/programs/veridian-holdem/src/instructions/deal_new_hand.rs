@@ -43,7 +43,7 @@ pub struct DealNewHandSetup<'info> {
 
     /// The `HandState` account, initialized to store this hand's encrypted data.
     #[account(
-        init,
+        init_if_needed,
         payer = payer,
         space = 8 + HandState::INIT_SPACE,
         seeds = [b"hand", game_state.key().as_ref()],
@@ -56,9 +56,8 @@ pub struct DealNewHandSetup<'info> {
         init_if_needed,
         space = 8 + SignerAccount::INIT_SPACE,
         payer = payer,
-        seeds = [&SIGN_PDA_SEED],
+        seeds = [b"sign_pda", payer.key().as_ref()],
         bump,
-        address = derive_sign_pda!(),
     )]
     pub sign_pda_account: Box<Account<'info, SignerAccount>>,
 
@@ -121,7 +120,7 @@ pub struct DealNewHandQueue<'info> {
     )]
     pub hand_state: Box<Account<'info, HandState>>,
 
-    /// Required signer PDA for Arcium operations (auto-init)
+    /// Required signer PDA for Arcium operations (v0.3 seeds)
     #[account(
         init_if_needed,
         space = 8 + SignerAccount::INIT_SPACE,
@@ -159,14 +158,17 @@ pub struct DealNewHandQueue<'info> {
 }
 
 pub fn deal_new_hand_queue(ctx: Context<DealNewHandQueue>, computation_offset: u64) -> Result<()> {
+	// set bump for sign PDA so CPI can sign with seeds
+	ctx.accounts.sign_pda_account.bump = ctx.bumps.sign_pda_account;
+
     // queue computation only
     let args = vec![];
     queue_computation(
         ctx.accounts,
         computation_offset,
         args,
-        None,
-        vec![crate::callbacks::DealNewHandCallback::callback_ix(&[])],
+        Some(String::new()),
+        vec![],
     )?;
     Ok(())
 }
