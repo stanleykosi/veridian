@@ -30,8 +30,16 @@ async function main() {
     new Uint8Array(JSON.parse(fs.readFileSync(`${os.homedir()}/.config/solana/id.json`, "utf8")))
   );
 
+  // Use the same cluster offset from deployment
+  const clusterOffset = 1116522165;
+  const clusterAccount = PublicKey.findProgramAddressSync(
+    [Buffer.from("cluster"), Buffer.from(clusterOffset.toString())],
+    getArciumProgAddress()
+  )[0];
+
   console.log("🚀 Initializing Veridian Hold'em Computation Definitions...");
   console.log("Program ID:", program.programId.toString());
+  console.log("Cluster Account:", clusterAccount.toString());
 
   // Initialize all computation definitions with error handling
   const compDefs = [
@@ -62,7 +70,8 @@ async function main() {
         compDef.name,
         compDef.circuitPath,
         compDef.methodName,
-        provider as anchor.AnchorProvider
+        provider as anchor.AnchorProvider,
+        clusterAccount
       );
       console.log(`✅ ${compDef.name} initialized:`, sig);
     } catch (error) {
@@ -85,7 +94,8 @@ async function initCompDef(
   instructionName: string,
   circuitPath: string,
   methodName: string,
-  provider: anchor.AnchorProvider
+  provider: anchor.AnchorProvider,
+  clusterAccount: PublicKey
 ): Promise<string> {
   const baseSeedCompDefAcc = getArciumAccountBaseSeed("ComputationDefinitionAccount");
   const offset = getCompDefAccOffset(instructionName);
@@ -100,12 +110,15 @@ async function initCompDef(
   // Read the circuit file
   const rawCircuit = fs.readFileSync(circuitPath);
 
-  // Initialize the computation definition
+  // Initialize the computation definition with all required accounts
   const sig = await program.methods[methodName]()
     .accounts({
       compDefAccount: compDefPDA,
       payer: owner.publicKey,
       mxeAccount: getMXEAccAddress(program.programId),
+      clusterAccount: clusterAccount,
+      systemProgram: anchor.web3.SystemProgram.programId,
+      arciumProgram: getArciumProgAddress(),
     })
     .signers([owner])
     .rpc({
