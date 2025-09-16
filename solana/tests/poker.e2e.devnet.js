@@ -181,8 +181,9 @@ describe('Poker E2E (devnet)', () => {
     const mxeAccount = getMXEAccAddress(programId);
     const mempoolAccount = getMempoolAccAddress(programId);
     const executingPool = getExecutingPoolAccAddress(programId);
-    // Use the cluster account that was created during deployment
-    const clusterAccount = getClusterAccAddress(mxeAccount);
+    // Use the cluster account derived from the cluster offset used during deployment
+    const clusterOffset = 1116522165; // devnet cluster offset (must match arcium deploy)
+    const clusterAccount = getClusterAccAddress(clusterOffset);
     // Resolve the fee pool account using the proper method
     const poolAccount = await resolveFeePoolPda(provider, arciumProgram);
     const clockAccount = getClockAccAddress();

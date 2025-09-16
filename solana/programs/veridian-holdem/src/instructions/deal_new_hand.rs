@@ -56,8 +56,9 @@ pub struct DealNewHandSetup<'info> {
         init_if_needed,
         space = 8 + SignerAccount::INIT_SPACE,
         payer = payer,
-        seeds = [b"sign_pda"],
+        seeds = [&SIGN_PDA_SEED],
         bump,
+        address = derive_sign_pda!(),
     )]
     pub sign_pda_account: Box<Account<'info, SignerAccount>>,
 
@@ -120,10 +121,14 @@ pub struct DealNewHandQueue<'info> {
     )]
     pub hand_state: Box<Account<'info, HandState>>,
 
-    /// Required signer PDA for Arcium operations (already initialized in setup)
+    /// Required signer PDA for Arcium operations (auto-init)
     #[account(
-        seeds = [b"sign_pda"],
-        bump
+        init_if_needed,
+        space = 8 + SignerAccount::INIT_SPACE,
+        payer = payer,
+        seeds = [&SIGN_PDA_SEED],
+        bump,
+        address = derive_sign_pda!(),
     )]
     pub sign_pda_account: Box<Account<'info, SignerAccount>>,
 
@@ -160,8 +165,8 @@ pub fn deal_new_hand_queue(ctx: Context<DealNewHandQueue>, computation_offset: u
         ctx.accounts,
         computation_offset,
         args,
-        Some(String::new()),
-        vec![],
+        None,
+        vec![crate::callbacks::DealNewHandCallback::callback_ix(&[])],
     )?;
     Ok(())
 }

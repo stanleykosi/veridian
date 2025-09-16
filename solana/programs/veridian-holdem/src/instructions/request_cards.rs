@@ -41,8 +41,9 @@ pub struct RequestCommunityCards<'info> {
         init_if_needed,
         space = 8 + SignerAccount::INIT_SPACE,
         payer = payer,
-        seeds = [b"sign_pda"],
+        seeds = [&SIGN_PDA_SEED],
         bump,
+        address = derive_sign_pda!(),
     )]
     pub sign_pda_account: Box<Account<'info, SignerAccount>>,
 
@@ -98,8 +99,9 @@ pub struct RequestShowdown<'info> {
         init_if_needed,
         space = 8 + SignerAccount::INIT_SPACE,
         payer = payer,
-        seeds = [b"sign_pda"],
+        seeds = [&SIGN_PDA_SEED],
         bump,
+        address = derive_sign_pda!(),
     )]
     pub sign_pda_account: Box<Account<'info, SignerAccount>>,
 
@@ -145,9 +147,7 @@ pub fn request_community_cards(
     
     ctx.accounts.sign_pda_account.bump = ctx.bumps.sign_pda_account;
 
-    let callback_accounts = String::new();
-
-    queue_computation(ctx.accounts, computation_offset, args, Some(callback_accounts), vec![RevealCommunityCardsCallback::callback_ix(&[])])?;
+    queue_computation(ctx.accounts, computation_offset, args, None, vec![RevealCommunityCardsCallback::callback_ix(&[])])?;
 
     Ok(())
 }
@@ -168,9 +168,7 @@ pub fn request_showdown(ctx: Context<RequestShowdown>, computation_offset: u64) 
 
     ctx.accounts.sign_pda_account.bump = ctx.bumps.sign_pda_account;
 
-    let callback_accounts = String::new();
-
-    queue_computation(ctx.accounts, computation_offset, args, Some(callback_accounts), vec![DetermineWinnerCallback::callback_ix(&[])])?;
+    queue_computation(ctx.accounts, computation_offset, args, None, vec![DetermineWinnerCallback::callback_ix(&[])])?;
     
     Ok(())
 }
