@@ -42,6 +42,7 @@ pub struct DealNewHandSetup<'info> {
     pub game_state: Box<Account<'info, GameState>>,
 
     /// The `HandState` account, initialized to store this hand's encrypted data.
+    /// CHECK: We only create it here; we don't deserialize it in setup to reduce stack usage.
     #[account(
         init_if_needed,
         payer = payer,
@@ -49,24 +50,14 @@ pub struct DealNewHandSetup<'info> {
         seeds = [b"hand", game_state.key().as_ref()],
         bump,
     )]
-    pub hand_state: Box<Account<'info, HandState>>,
-
-    /// Required signer PDA for Arcium operations
-    #[account(
-        init_if_needed,
-        space = 8 + SignerAccount::INIT_SPACE,
-        payer = payer,
-        seeds = [b"sign_pda", payer.key().as_ref()],
-        bump,
-    )]
-    pub sign_pda_account: Box<Account<'info, SignerAccount>>,
+    pub hand_state: UncheckedAccount<'info>,
 
     /// System program required for init constraints
     pub system_program: Program<'info, System>,
 }
 
 /// The handler function for the setup step of `deal_new_hand`.
-pub fn deal_new_hand_setup(ctx: Context<DealNewHandSetup>, computation_offset: u64) -> Result<()> {
+pub fn deal_new_hand_setup(ctx: Context<DealNewHandSetup>, _computation_offset: u64) -> Result<()> {
     let game_state = &mut ctx.accounts.game_state;
     let payer = &ctx.accounts.payer;
 
@@ -92,8 +83,7 @@ pub fn deal_new_hand_setup(ctx: Context<DealNewHandSetup>, computation_offset: u
     game_state.game_phase = GamePhase::Dealing;
     game_state.last_action_timestamp = Clock::get()?.unix_timestamp;
     
-    ctx.accounts.hand_state.computation_offset = computation_offset;
-    ctx.accounts.sign_pda_account.bump = ctx.bumps.sign_pda_account;
+    // Defer setting fields on HandState to the queue step to minimize setup stack usage.
 
     Ok(())
 }
@@ -127,7 +117,6 @@ pub struct DealNewHandQueue<'info> {
         payer = payer,
         seeds = [&SIGN_PDA_SEED],
         bump,
-        address = derive_sign_pda!(),
     )]
     pub sign_pda_account: Box<Account<'info, SignerAccount>>,
 

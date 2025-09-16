@@ -45,14 +45,28 @@ function u64le(n) {
 }
 
 async function ensureAirdrop(conn, pubkey, minSol = 0.5) {
-  const bal = await conn.getBalance(pubkey);
-  if (bal < minSol * LAMPORTS_PER_SOL) {
-    const sig = await conn.requestAirdrop(pubkey, Math.ceil((minSol * LAMPORTS_PER_SOL) - bal));
+  let bal = 0;
+  for (let i = 0; i < 3; i++) {
     try {
+      bal = await conn.getBalance(pubkey);
+      break;
+    } catch (e) {
+      if (i === 2) {
+        console.warn(`getBalance failed for ${pubkey.toBase58()}: ${e}. Proceeding without airdrop.`);
+        return;
+      }
+      await new Promise(r => setTimeout(r, 800));
+    }
+  }
+  if (bal < minSol * LAMPORTS_PER_SOL) {
+    try {
+      const sig = await conn.requestAirdrop(pubkey, Math.ceil((minSol * LAMPORTS_PER_SOL) - bal));
       const latest = await conn.getLatestBlockhash('processed');
       await conn.confirmTransaction({ signature: sig, ...latest }, 'processed');
-    } catch { }
-    await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 1200));
+    } catch (e) {
+      console.warn(`Airdrop failed for ${pubkey.toBase58()}: ${e}. Continuing.`);
+    }
   }
 }
 
@@ -88,7 +102,7 @@ function equalBytes(a, b) {
 describe('Poker E2E (devnet)', () => {
   // Provider on devnet using default solana keypair
   const wallet = new anchor.Wallet(readKpJson(`${os.homedir()}/.config/solana/id.json`));
-  const connection = new Connection('https://api.devnet.solana.com', { commitment: 'processed' });
+  const connection = new Connection('https://devnet.helius-rpc.com/?api-key=1b6e76c5-88fd-4041-bd28-ac7ab065dc4b', { commitment: 'processed' });
   const provider = new anchor.AnchorProvider(connection, wallet, { commitment: 'processed', preflightCommitment: 'processed' });
   anchor.setProvider(provider);
 
@@ -109,7 +123,7 @@ describe('Poker E2E (devnet)', () => {
     const gamePda = pda('game', [u64le(tableId)], programId);
     const escrowPda = pda('escrow', [gamePda.toBuffer()], programId);
     const handPda = pda('hand', [gamePda.toBuffer()], programId);
-    // Use the macro-derived v0.3 PDA for sign PDA
+    // Use the macro-derived Sign PDA the program expects (derive_sign_pda! with SIGN_PDA_SEED)
     const signPda = new PublicKey('BkkX4G853JQZtsvVSbGb4UA3BLzbaktq8Sw1X75w8paB');
 
     // Create SPL mint for the table currency (creator is mint authority)
@@ -183,7 +197,7 @@ describe('Poker E2E (devnet)', () => {
     const mempoolAccount = getMempoolAccAddress(programId);
     const executingPool = getExecutingPoolAccAddress(programId);
     // Use the cluster account derived from the cluster offset used during deployment
-    const clusterOffset = 1116522165; // devnet cluster offset (must match arcium deploy)
+    const clusterOffset = Number(process.env.ARCIUM_CLUSTER_OFFSET || 1116522165); // must match arcium deploy
     const clusterAccount = getClusterAccAddress(clusterOffset);
     // Resolve the fee pool account using the proper method
     const poolAccount = await resolveFeePoolPda(provider, arciumProgram);
@@ -232,6 +246,28 @@ describe('Poker E2E (devnet)', () => {
     }
 
     // -------- Deal New Hand Queue --------
+    // Ensure MXE keys are set (Arcium may take a moment after deploy)
+    async function waitForMxeKeys(provider, programId, clusterPk, maxRetries = 150, retryDelayMs = 2000) {
+      const { getMXEPublicKey } = require('@arcium-hq/client');
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          const k = await getMXEPublicKey(provider, programId);
+          if (k && k.length === 32 && !Array.from(k).every((b) => b === 0)) {
+            console.log('MXE public key is set:', Buffer.from(k).toString('hex'));
+            return;
+          }
+        } catch (e) {
+          // swallow and retry
+        }
+        if (i % 10 === 0) {
+          console.log(`Still waiting for MXE keys... attempt ${i + 1}/${maxRetries} (cluster ${clusterPk.toBase58()})`);
+        }
+        await new Promise(r => setTimeout(r, retryDelayMs));
+      }
+      throw new Error(`MXE keys not set after ${Math.ceil((maxRetries * retryDelayMs) / 1000)}s. Cluster: ${clusterPk.toBase58()}. If this persists, redeploy to another devnet cluster offset (e.g., 3458519414) and re-run init_comp_defs.`);
+    }
+    console.log('Waiting for MXE keys to be set...');
+    await waitForMxeKeys(provider, programId, clusterAccount, 150, 2000);
     const compAccDeal = getComputationAccAddress(programId, dealOffsetBN);
     // Derive CompDef PDA using our programId (MXE program id) per Arcium docs
     const compDefOffsetBytes = Buffer.from(getCompDefAccOffset('shuffle_and_deal'));
