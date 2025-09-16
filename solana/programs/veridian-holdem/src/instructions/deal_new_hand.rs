@@ -39,7 +39,7 @@ pub struct DealNewHandSetup<'info> {
         seeds = [b"game", &game_state.table_id.to_le_bytes()[..]],
         bump
     )]
-    pub game_state: Account<'info, GameState>,
+    pub game_state: Box<Account<'info, GameState>>,
 
     /// The `HandState` account, initialized to store this hand's encrypted data.
     #[account(
@@ -59,7 +59,7 @@ pub struct DealNewHandSetup<'info> {
         seeds = [b"sign_pda"],
         bump,
     )]
-    pub sign_pda_account: Account<'info, SignerAccount>,
+    pub sign_pda_account: Box<Account<'info, SignerAccount>>,
 
     /// System program required for init constraints
     pub system_program: Program<'info, System>,
@@ -111,7 +111,7 @@ pub struct DealNewHandQueue<'info> {
         seeds = [b"game", &game_state.table_id.to_le_bytes()[..]],
         bump
     )]
-    pub game_state: Account<'info, GameState>,
+    pub game_state: Box<Account<'info, GameState>>,
 
     #[account(
         mut,
@@ -125,7 +125,7 @@ pub struct DealNewHandQueue<'info> {
         seeds = [b"sign_pda"],
         bump
     )]
-    pub sign_pda_account: Account<'info, SignerAccount>,
+    pub sign_pda_account: Box<Account<'info, SignerAccount>>,
 
     // Arcium
     #[account(address = derive_mxe_pda!())]
@@ -140,13 +140,13 @@ pub struct DealNewHandQueue<'info> {
     /// CHECK: Arcium validates
     pub computation_account: UncheckedAccount<'info>,
     #[account(address = derive_comp_def_pda!(comp_def_offset("shuffle_and_deal")))]
-    pub comp_def_account: Account<'info, ComputationDefinitionAccount>,
+    pub comp_def_account: Box<Account<'info, ComputationDefinitionAccount>>,
     #[account(mut, address = derive_cluster_pda!(mxe_account))]
-    pub cluster_account: Account<'info, Cluster>,
+    pub cluster_account: Box<Account<'info, Cluster>>,
     #[account(mut, address = ARCIUM_FEE_POOL_ACCOUNT_ADDRESS)]
-    pub pool_account: Account<'info, FeePool>,
+    pub pool_account: Box<Account<'info, FeePool>>,
     #[account(address = ARCIUM_CLOCK_ACCOUNT_ADDRESS)]
-    pub clock_account: Account<'info, ClockAccount>,
+    pub clock_account: Box<Account<'info, ClockAccount>>,
     #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
     /// CHECK: sysvar
     pub instructions_sysvar: AccountInfo<'info>,

@@ -33,7 +33,7 @@ pub struct RequestCommunityCards<'info> {
     pub payer: Signer<'info>,
 
     #[account(mut, seeds = [b"game", &game_state.table_id.to_le_bytes()[..]], bump)]
-    pub game_state: Account<'info, GameState>,
+    pub game_state: Box<Account<'info, GameState>>,
 
     #[account(seeds = [b"hand", game_state.key().as_ref()], bump)]
     pub hand_state: Box<Account<'info, HandState>>,
@@ -45,7 +45,7 @@ pub struct RequestCommunityCards<'info> {
         seeds = [b"sign_pda"],
         bump,
     )]
-    pub sign_pda_account: Account<'info, SignerAccount>,
+    pub sign_pda_account: Box<Account<'info, SignerAccount>>,
 
     // --- Arcium Required Accounts ---
     #[account(address = derive_mxe_pda!())]
@@ -60,13 +60,13 @@ pub struct RequestCommunityCards<'info> {
     /// CHECK: Checked by Arcium program
     pub computation_account: UncheckedAccount<'info>,
     #[account(address = derive_comp_def_pda!(comp_def_offset("reveal_community_cards")))]
-    pub comp_def_account: Account<'info, ComputationDefinitionAccount>,
+    pub comp_def_account: Box<Account<'info, ComputationDefinitionAccount>>,
     #[account(mut, address = derive_cluster_pda!(mxe_account))]
-    pub cluster_account: Account<'info, Cluster>,
+    pub cluster_account: Box<Account<'info, Cluster>>,
     #[account(mut, address = ARCIUM_FEE_POOL_ACCOUNT_ADDRESS,)]
-    pub pool_account: Account<'info, FeePool>,
+    pub pool_account: Box<Account<'info, FeePool>>,
     #[account(address = ARCIUM_CLOCK_ACCOUNT_ADDRESS,)]
-    pub clock_account: Account<'info, ClockAccount>,
+    pub clock_account: Box<Account<'info, ClockAccount>>,
     #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
     /// CHECK: instructions sysvar
     pub instructions_sysvar: AccountInfo<'info>,
@@ -83,16 +83,16 @@ pub struct RequestShowdown<'info> {
     pub payer: Signer<'info>,
 
     #[account(mut, seeds = [b"game", &game_state.table_id.to_le_bytes()[..]], bump)]
-    pub game_state: Account<'info, GameState>,
+    pub game_state: Box<Account<'info, GameState>>,
 
     #[account(seeds = [b"hand", game_state.key().as_ref()], bump)]
     pub hand_state: Box<Account<'info, HandState>>,
     
     #[account(seeds = [b"config"], bump)]
-    pub config: Account<'info, Config>,
+    pub config: Box<Account<'info, Config>>,
     
     #[account(mut, seeds = [b"escrow", game_state.key().as_ref()], bump)]
-    pub escrow_account: Account<'info, TokenAccount>,
+    pub escrow_account: Box<Account<'info, TokenAccount>>,
     
     /// CHECK: The treasury wallet from the config, to be used in the callback.
     #[account(mut, address = config.treasury_wallet)]
@@ -109,7 +109,7 @@ pub struct RequestShowdown<'info> {
         seeds = [b"sign_pda"],
         bump,
     )]
-    pub sign_pda_account: Account<'info, SignerAccount>,
+    pub sign_pda_account: Box<Account<'info, SignerAccount>>,
 
     // --- Arcium Required Accounts ---
     #[account(address = derive_mxe_pda!())]
@@ -124,13 +124,13 @@ pub struct RequestShowdown<'info> {
     /// CHECK: Checked by Arcium program
     pub computation_account: UncheckedAccount<'info>,
     #[account(address = derive_comp_def_pda!(comp_def_offset("determine_winner")))]
-    pub comp_def_account: Account<'info, ComputationDefinitionAccount>,
+    pub comp_def_account: Box<Account<'info, ComputationDefinitionAccount>>,
     #[account(mut, address = derive_cluster_pda!(mxe_account))]
-    pub cluster_account: Account<'info, Cluster>,
+    pub cluster_account: Box<Account<'info, Cluster>>,
     #[account(mut, address = ARCIUM_FEE_POOL_ACCOUNT_ADDRESS,)]
-    pub pool_account: Account<'info, FeePool>,
+    pub pool_account: Box<Account<'info, FeePool>>,
     #[account(address = ARCIUM_CLOCK_ACCOUNT_ADDRESS,)]
-    pub clock_account: Account<'info, ClockAccount>,
+    pub clock_account: Box<Account<'info, ClockAccount>>,
     #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
     /// CHECK: instructions sysvar
     pub instructions_sysvar: AccountInfo<'info>,
